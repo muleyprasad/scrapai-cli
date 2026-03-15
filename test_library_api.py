@@ -50,7 +50,15 @@ def test_basic_api():
     projects = list_projects()
     print(f"   ✓ Found {len(projects)} projects")
     for p in projects:
-        print(f"      - {p['name']}: {p['spider_count']} spiders")
+        print(f"      - {p.name}: {p.spider_count} spiders")
+
+    # 4. List spiders
+    print("\n4. Testing list_spiders()...")
+    for project in projects:
+        spiders = list_spiders(project=project.name)
+        print(f"   Project '{project.name}': {len(spiders)} spiders")
+        for s in spiders:
+            print(f"      - {s.name}: {s.last_crawl_item_count} items")
 
     return True
 
