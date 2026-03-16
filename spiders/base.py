@@ -179,17 +179,27 @@ class BaseDBSpiderMixin:
         xpath = config.get("xpath")
         get_all = config.get("get_all", False)
 
-        if css:
-            result = selector.css(css)
-        elif xpath:
-            result = selector.xpath(xpath)
-        else:
-            return None
+        try:
+            if css:
+                result = selector.css(css)
+            elif xpath:
+                result = selector.xpath(xpath)
+            else:
+                return None
 
-        if get_all:
-            return result.getall()
-        else:
-            return result.get()
+            if get_all:
+                return result.getall()
+            else:
+                return result.get()
+        except Exception as e:
+            # Log selector error but don't crash the spider
+            selector_type = "CSS" if css else "XPath"
+            selector_value = css if css else xpath
+            logger.error(
+                f"Invalid {selector_type} selector '{selector_value}' in field extraction: {e}. "
+                f"Check for common mistakes like using ':' instead of '.' for class names."
+            )
+            return None
 
     def _extract_nested_list(self, selector, config, depth=0, max_depth=3):
         """Extract a list of items with nested field extraction.
@@ -215,7 +225,16 @@ class BaseDBSpiderMixin:
             return []
 
         items = []
-        for item_node in selector.css(item_selector):
+        try:
+            nodes = selector.css(item_selector)
+        except Exception as e:
+            logger.error(
+                f"Invalid CSS selector '{item_selector}' in nested_list: {e}. "
+                f"Check for common mistakes like using ':' instead of '.' for class names."
+            )
+            return []
+
+        for item_node in nodes:
             item = {}
             for field_name, field_config in extract_config.items():
                 # Handle nested_list recursively
@@ -306,7 +325,15 @@ class BaseDBSpiderMixin:
                     response.url, url_context_config
                 )
 
-            rows = response.css(row_selector)
+            try:
+                rows = response.css(row_selector)
+            except Exception as e:
+                logger.error(
+                    f"Invalid CSS selector '{row_selector}' in iterate callback: {e}. "
+                    f"Check for common mistakes like using ':' instead of '.' for class names."
+                )
+                return
+
             logger.info(
                 f"Iterate {callback_name}: found {len(rows)} rows on {response.url}"
             )
