@@ -13,6 +13,7 @@ os.environ["SCRAPAI_LLM_KEY"] = os.getenv("OPENROUTER_API_KEY", "")
 # Try this specific free model that's known to work
 os.environ["SCRAPAI_LLM_MODEL"] = "openrouter/hunter-alpha"
 
+#"anthropic/claude-sonnet-4.6" # "anthropic/claude-3-haiku"
 from scrapai import (
     setup,
     verify,
@@ -116,7 +117,7 @@ def test_generate_spider_simple():
         result = generate_spider(
             url=url,
             project=project,
-            description="Extract money transfer rates and comparison data from remitrate.com",
+            description="Extract title of the page",
         )
         print(f"   ✓ Spider generated successfully!")
         print(f"   Name: {result.name}")
@@ -148,8 +149,11 @@ def test_generate_spider_simple():
             )
             if items_result.items:
                 item = items_result.items[0]
-                title = item.get('title', 'N/A')
-                print(f"\n   📄 Page Title: {title}")
+                if item is not None:
+                    title = item.get('title', 'N/A')
+                    print(f"\n   📄 Page Title: {title}")
+                else:
+                    print(f"\n   ⚠️  First item is None")
             else:
                 print(f"   ⚠️  No items found")
         except Exception as e:
@@ -201,8 +205,15 @@ def test_crawl_and_show(spider_name, project):
 
     for i, item in enumerate(items_result.items, 1):
         print(f"\n   Item {i}:")
+        if item is None:
+            print(f"      ⚠️  Item is None")
+            continue
         print(f"      URL: {item.get('url', 'N/A')}")
-        print(f"      Title: {item.get('title', 'N/A')[:80]}...")
+        title = item.get('title')
+        if title:
+            print(f"      Title: {title[:80]}...")
+        else:
+            print(f"      Title: N/A")
         content = item.get("content", "")
         if content:
             print(f"      Content: {content[:100]}...")
