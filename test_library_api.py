@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ["SCRAPAI_LLM_API"] = "https://openrouter.ai/api/v1"
 os.environ["SCRAPAI_LLM_KEY"] = os.getenv("OPENROUTER_API_KEY", "")
 # Try this specific free model that's known to work
-os.environ["SCRAPAI_LLM_MODEL"] = "anthropic/claude-3-haiku:free"
+os.environ["SCRAPAI_LLM_MODEL"] = "openrouter/hunter-alpha"
 
 from scrapai import (
     setup,
@@ -81,39 +81,81 @@ def test_generate_spider_simple():
         print("   Set it with: export OPENROUTER_API_KEY=your_key")
         return None
 
-    # For now, demonstrate with existing spider
-    project = "exampletest3"
+    from scrapai import generate_spider, delete_spider, list_spiders, crawl, show_items
+    from urllib.parse import urlparse
 
-    print(f"\n1. Using existing spider from project: {project}")
+    # Target URL for spider generation
+    url = "https://www.remitrate.com/"
+    project = "remitrate"
 
-    from scrapai import list_spiders
+    # Derive expected spider name from URL
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc.replace("www.", "")
+    spider_name = domain.replace(".", "_")
 
-    spiders = list_spiders(project=project)
+    print(f"\n1. Generating spider for: {url}")
+    print(f"   Expected spider name: {spider_name}")
+    print(f"   Project: {project}")
 
-    if spiders:
-        spider = spiders[0]
-        print(f"   ✓ Found spider: {spider.name}")
-        return spider
-    else:
-        print(f"   ⚠️  No spiders in project {project}")
+    # Check if spider already exists and delete it
+    try:
+        existing_spiders = list_spiders(project=project)
+        spider_exists = any(s.name == spider_name for s in existing_spiders)
+
+        if spider_exists:
+            print(f"\n   🗑️  Spider '{spider_name}' already exists. Deleting...")
+            delete_spider(name=spider_name, project=project)
+            print(f"   ✓ Deleted existing spider '{spider_name}'")
+    except Exception as e:
+        print(f"   ⚠️  Could not check/delete existing spider: {e}")
+
+    # Generate new spider
+    print(f"\n2. Generating spider via LLM...")
+    spider_result = None
+    try:
+        result = generate_spider(
+            url=url,
+            project=project,
+            description="Extract money transfer rates and comparison data from remitrate.com",
+        )
+        print(f"   ✓ Spider generated successfully!")
+        print(f"   Name: {result.name}")
+        print(f"   Project: {result.project}")
+        print(f"   Imported: {result.imported}")
+        if result.test_crawl_item_count is not None:
+            print(f"   Test crawl items: {result.test_crawl_item_count}")
+        spider_result = result
+    except Exception as e:
+        print(f"   ❌ Generation failed: {e}")
         return None
 
-    # For now, demonstrate with existing spider
-    project = "exampletest3"
+    # Get the page title by crawling and showing items
+    if spider_result:
+        print(f"\n3. Crawling to get page title...")
+        try:
+            crawl_result = crawl(
+                spider=spider_result.name,
+                project=project,
+                limit=1,
+            )
+            print(f"   ✓ Crawl completed! Items: {crawl_result.item_count}")
 
-    print(f"\n1. Using existing spider from project: {project}")
+            # Show items to get the title
+            items_result = show_items(
+                spider=spider_result.name,
+                project=project,
+                limit=1,
+            )
+            if items_result.items:
+                item = items_result.items[0]
+                title = item.get('title', 'N/A')
+                print(f"\n   📄 Page Title: {title}")
+            else:
+                print(f"   ⚠️  No items found")
+        except Exception as e:
+            print(f"   ❌ Crawl/show failed: {e}")
 
-    from scrapai import list_spiders
-
-    spiders = list_spiders(project=project)
-
-    if spiders:
-        spider = spiders[0]
-        print(f"   ✓ Found spider: {spider.name}")
-        return spider
-    else:
-        print(f"   ⚠️  No spiders in project {project}")
-        return None
+    return spider_result
 
 
 def test_crawl_and_show(spider_name, project):

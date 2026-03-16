@@ -41,6 +41,7 @@ class PipelineResult:
     config: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     failures: Optional[List[Dict[str, str]]] = None
+    test_item_count: Optional[int] = None
 
 
 def resolve_llm_config(
@@ -374,7 +375,7 @@ async def run_add_pipeline(
             )
             click.echo(json.dumps(config, indent=2))
             click.echo("✅ Dry run complete. No DB changes made.")
-            return PipelineResult(success=True, spider_name=spider_name, config=config)
+            return PipelineResult(success=True, spider_name=spider_name, config=config, test_item_count=None)
 
         if backup and had_existing:
             _maybe_backup_existing(spider_name, project, backup_path)
@@ -387,7 +388,7 @@ async def run_add_pipeline(
             )
             click.echo("⚠️  Test crawl skipped (--skip-test-crawl)")
             click.echo(f"✅ Spider '{spider_name}' generated and imported.")
-            return PipelineResult(success=True, spider_name=spider_name, config=config)
+            return PipelineResult(success=True, spider_name=spider_name, config=config, test_item_count=None)
 
         click.echo("[4/4] Validating with test crawl (limit=3) ...")
         items_count = await asyncio.to_thread(run_test_crawl, spider_name, project, 3)
@@ -396,7 +397,7 @@ async def run_add_pipeline(
 
         _write_output_files(spider_analysis_dir, output_path, config, always_write=True)
         click.echo(f"✅ Spider '{spider_name}' generated and imported.")
-        return PipelineResult(success=True, spider_name=spider_name, config=config)
+        return PipelineResult(success=True, spider_name=spider_name, config=config, test_item_count=items_count)
 
     except Exception as exc:
         message = _sanitize_text(str(exc), secrets)
