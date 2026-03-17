@@ -44,6 +44,7 @@ def _build_system_instructions() -> str:
             "# ScrapAI Spider Generation Guide\n",
             "The following instructions are from the project's documentation. "
             "Follow them precisely when generating spider configs.\n",
+            _SINGLE_PAGE_GUIDANCE,
         ]
         parts.append(sections)
 
@@ -144,6 +145,28 @@ def _extract_relevant_sections(claude_md: str) -> str:
 
     return "\n".join(result_lines)
 
+
+_SINGLE_PAGE_GUIDANCE = """\
+# Single-Page vs Multi-Page Spider Detection
+
+CRITICAL: Read the extraction goal carefully to determine scope.
+
+**Single-page extraction** (user wants data from ONE specific page):
+- Signals: "extract from this page", "get the rate/price/data", specific field names,
+  "single page", "do not follow links", "one page only"
+- Config: set `start_urls` to ONLY the target URL, set ALL rules to `"follow": false`,
+  use named callbacks with `"extract"` for specific fields
+- Do NOT add broad URL patterns that would match other pages
+- Do NOT set `follow: true` on any rule
+
+**Multi-page crawl** (user wants to scrape many pages across a site):
+- Signals: "scrape all articles", "crawl the blog", "extract from all pages",
+  "get all products", no specific field names
+- Config: use `start_urls` with section landing pages, rules with URL patterns,
+  `follow: true` for navigation
+
+When in doubt, prefer single-page if the user mentions specific fields to extract.
+"""
 
 _FALLBACK_INSTRUCTIONS = (
     "You are ScrapAI, an expert web scraping engineer. "

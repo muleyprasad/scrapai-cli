@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Set free LLM model for testing (using OpenRouter free tier)
 os.environ["SCRAPAI_LLM_API"] = "https://openrouter.ai/api/v1"
-os.environ["SCRAPAI_LLM_KEY"] = os.getenv("OPENROUTER_API_KEY", "")
+os.environ["SCRAPAI_LLM_KEY"] = os.getenv("OPENROUTER_API_KEY", "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")
 # Try this specific free model that's known to work
 os.environ["SCRAPAI_LLM_MODEL"] = "openrouter/hunter-alpha"
 
@@ -89,7 +89,7 @@ def test_generate_spider_simple():
     url = "https://www.remitrate.com/"
     project = "remitrate"
 
-    # Derive expected spider name from URL
+    # Spider name = domain with dots→underscores (no project suffix per CLAUDE.md)
     parsed_url = urlparse(url)
     domain = parsed_url.netloc.replace("www.", "")
     spider_name = domain.replace(".", "_")
@@ -117,7 +117,7 @@ def test_generate_spider_simple():
         result = generate_spider(
             url=url,
             project=project,
-            description="Extract title of the page",
+            description="Single page only. Extract the page title from the homepage. Do not follow any links.",
         )
         print(f"   ✓ Spider generated successfully!")
         print(f"   Name: {result.name}")

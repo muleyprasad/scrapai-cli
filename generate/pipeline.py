@@ -81,11 +81,7 @@ def _derive_domain_and_name(url: str, project: Optional[str] = None) -> Tuple[st
     domain = domain.replace("www.", "")
     if ":" in domain:
         domain = domain.split(":", 1)[0]
-    base_name = domain.replace(".", "_")
-    if project:
-        spider_name = f"{base_name}_{project}"
-    else:
-        spider_name = base_name
+    spider_name = domain.replace(".", "_")
     return domain, spider_name
 
 
@@ -148,8 +144,11 @@ def _selector_from_element(el) -> str:
     if el.get("id"):
         return f"{el.name}#{el.get('id')}"
     classes = el.get("class", [])
-    if classes:
-        return f"{el.name}." + ".".join(classes)
+    # Filter out Tailwind/utility classes containing colons (e.g., 'lg:text-6xl',
+    # 'dark:text-white') as they produce invalid CSS selectors
+    safe_classes = [c for c in classes if ":" not in c]
+    if safe_classes:
+        return f"{el.name}." + ".".join(safe_classes)
     return el.name
 
 

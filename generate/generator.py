@@ -50,6 +50,11 @@ def _build_messages(
         "- Populate all required fields.\n"
         "- Use only selectors confirmed in the inspect summary.\n"
         "- Prefer parse_article for article-style content unless custom callbacks are needed.\n"
+        "- If the extraction goal mentions specific fields (rate, price, fee, etc.) or says 'single page' / 'do not follow', "
+        "set ALL rules to follow:false, use start_urls with ONLY the target URL, and use named callbacks with extract config.\n"
+        "- CSS selectors MUST be simple and valid. Use tag names, IDs, or simple classes. "
+        "NEVER use Tailwind/utility classes containing colons (e.g., 'lg:text-6xl', 'dark:text-white') as they break CSS parsing. "
+        "Prefer simple selectors like 'h1::text', 'div.content::text', '#price::text'.\n"
     )
 
     return [
