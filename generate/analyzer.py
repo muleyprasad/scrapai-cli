@@ -57,6 +57,8 @@ def _build_messages(inspect_summary: Dict[str, Any], description: str) -> List[D
         "- Output only valid JSON matching the schema.\n"
         "- Use only selectors present in the inspect summary.\n"
         "- Be concise but specific about URL patterns and extraction strategy.\n"
+        "- CSS selectors MUST be simple and valid. NEVER include Tailwind/utility classes with colons "
+        "(e.g., 'lg:text-6xl', 'dark:text-white'). Use 'h1::text', 'div.content::text', '#id::text' style.\n"
     )
 
     return [

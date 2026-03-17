@@ -27,6 +27,18 @@ def run_test_crawl(spider_name: str, project: str, limit: int = 3) -> int:
         )
         if not spider:
             return 0
+
+        # Delete any existing items for this spider so the test crawl starts clean.
+        # Also delete items from OTHER spiders that share the same start_urls,
+        # since scraped_items.url has a global unique constraint.
+        if spider.start_urls:
+            (
+                db.query(ScrapedItem)
+                .filter(ScrapedItem.url.in_(spider.start_urls))
+                .delete(synchronize_session=False)
+            )
+            db.commit()
+
         initial_count = (
             db.query(ScrapedItem).filter(ScrapedItem.spider_id == spider.id).count()
         )

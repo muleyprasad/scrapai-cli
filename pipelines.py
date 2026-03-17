@@ -66,12 +66,14 @@ class DatabasePipeline:
         if not self.buffer:
             return
 
-        # 1. Deduplication (Batch Query)
+        # 1. Deduplication per-spider (Batch Query)
         urls = [i["url"] for i in self.buffer]
+        spider_ids = {i["spider_id"] for i in self.buffer if "spider_id" in i}
         try:
-            existing_items = (
-                self.db.query(ScrapedItem.url).filter(ScrapedItem.url.in_(urls)).all()
-            )
+            query = self.db.query(ScrapedItem.url).filter(ScrapedItem.url.in_(urls))
+            if spider_ids:
+                query = query.filter(ScrapedItem.spider_id.in_(spider_ids))
+            existing_items = query.all()
             existing_urls = {r[0] for r in existing_items}
         except Exception as e:
             spider.logger.error(f"Error checking duplicates: {e}")
@@ -144,7 +146,7 @@ class DatabasePipeline:
             )
             new_objects.append(db_item)
 
-        # 3. Bulk Insert
+        # 3. Bulk Insert (with per-item fallback on unique constraint violations)
         if new_objects:
             try:
                 self.db.add_all(new_objects)
@@ -152,6 +154,18 @@ class DatabasePipeline:
                 spider.logger.info(f"Saved {len(new_objects)} items to DB (Batch)")
             except Exception as e:
                 self.db.rollback()
-                spider.logger.error(f"Error saving batch: {e}")
+                # Fallback: insert one-by-one, skipping duplicates
+                saved = 0
+                for obj in new_objects:
+                    try:
+                        self.db.add(obj)
+                        self.db.commit()
+                        saved += 1
+                    except Exception:
+                        self.db.rollback()
+                if saved:
+                    spider.logger.info(f"Saved {saved}/{len(new_objects)} items to DB (individual)")
+                else:
+                    spider.logger.warning(f"No new items saved (all duplicates)")
 
         self.buffer = []

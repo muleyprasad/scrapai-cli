@@ -60,7 +60,7 @@ HTTPCACHE_ENABLED = False
 HTTPCACHE_EXPIRATION_SECS = 3600
 
 # Set log level to INFO to prevent printing full items with HTML to console
-LOG_LEVEL = "INFO"
+LOG_LEVEL = "ERROR"
 
 # Show stats every 10 seconds
 LOGSTATS_INTERVAL = 10
